@@ -66,20 +66,22 @@ class ApplicationLevelBindManager(object):
 
     @staticmethod
     def init_mousewheel_binding(master):
-        if not ApplicationLevelBindManager.mw_initialized:
-            _os = platform.system()
-            if _os in ('Linux', 'OpenBSD', 'FreeBSD'):
-                master.bind_all(
-                    '<4>', ApplicationLevelBindManager.on_mousewheel, add='+')
-                master.bind_all(
-                    '<5>', ApplicationLevelBindManager.on_mousewheel, add='+')
-            else:
-                # Windows and MacOS
-                master.bind_all(
-                    "<MouseWheel>",
-                    ApplicationLevelBindManager.on_mousewheel,
-                    add='+')
-            ApplicationLevelBindManager.mw_initialized = True
+        if ApplicationLevelBindManager.mw_initialized:
+            return
+
+        _os = platform.system()
+        if _os in ('Linux', 'OpenBSD', 'FreeBSD'):
+            master.bind_all(
+                '<4>', ApplicationLevelBindManager.on_mousewheel, add='+')
+            master.bind_all(
+                '<5>', ApplicationLevelBindManager.on_mousewheel, add='+')
+        else:
+            # Windows and MacOS
+            master.bind_all(
+                "<MouseWheel>",
+                ApplicationLevelBindManager.on_mousewheel,
+                add='+')
+        ApplicationLevelBindManager.mw_initialized = True
 
     @staticmethod
     def make_onmousewheel_cb(widget, orient, factor=1):
@@ -358,42 +360,44 @@ class ScrolledFrame(ttk.Frame):
     __getitem__ = cget
 
     def _configure_mousewheel(self):
-        if self.usemousewheel:
-            ApplicationLevelBindManager.init_mousewheel_binding(self)
-
-            if self.hsb and not hasattr(self.hsb, 'on_mousewheel'):
-                self.hsb.on_mousewheel = ApplicationLevelBindManager.make_onmousewheel_cb(
-                    self, 'x', 2)
-            if self.vsb and not hasattr(self.vsb, 'on_mousewheel'):
-                self.vsb.on_mousewheel = ApplicationLevelBindManager.make_onmousewheel_cb(
-                    self, 'y', 2)
-
-            main_sb = self.vsb or self.hsb
-            if main_sb:
-                self.on_mousewheel = main_sb.on_mousewheel
-                bid = self.bind(
-                    '<Enter>',
-                    lambda event: ApplicationLevelBindManager.mousewheel_bind(self),
-                    add='+')
-                self._bindingids.append((self, bid))
-                bid = self.bind('<Leave>',
-                                lambda event: ApplicationLevelBindManager.mousewheel_unbind(),
-                                add='+')
-                self._bindingids.append((self, bid))
-            for s in (self.vsb, self.hsb):
-                if s:
-                    bid = s.bind(
-                        '<Enter>',
-                        lambda event,
-                               scrollbar=s: ApplicationLevelBindManager.mousewheel_bind(scrollbar),
-                        add='+')
-                    self._bindingids.append((s, bid))
-                    if s != main_sb:
-                        bid = s.bind(
-                            '<Leave>',
-                            lambda event: ApplicationLevelBindManager.mousewheel_unbind(),
-                            add='+')
-                        self._bindingids.append((s, bid))
-        else:
+        if not self.usemousewheel:
             for widget, bid in self._bindingids:
                 remove_binding(widget, bid)
+            return
+
+        ApplicationLevelBindManager.init_mousewheel_binding(self)
+
+        if self.hsb and not hasattr(self.hsb, 'on_mousewheel'):
+            self.hsb.on_mousewheel = ApplicationLevelBindManager.make_onmousewheel_cb(
+                self, 'x', 2)
+        if self.vsb and not hasattr(self.vsb, 'on_mousewheel'):
+            self.vsb.on_mousewheel = ApplicationLevelBindManager.make_onmousewheel_cb(
+                self, 'y', 2)
+
+        main_sb = self.vsb or self.hsb
+        if main_sb:
+            self.on_mousewheel = main_sb.on_mousewheel
+            bid = self.bind(
+                '<Enter>',
+                lambda event: ApplicationLevelBindManager.mousewheel_bind(self),
+                add='+')
+            self._bindingids.append((self, bid))
+            bid = self.bind('<Leave>',
+                            lambda event: ApplicationLevelBindManager.mousewheel_unbind(),
+                            add='+')
+            self._bindingids.append((self, bid))
+        for s in (self.vsb, self.hsb):
+            if s:
+                bid = s.bind(
+                    '<Enter>',
+                    lambda event,
+                           scrollbar=s: ApplicationLevelBindManager.mousewheel_bind(scrollbar),
+                    add='+')
+                self._bindingids.append((s, bid))
+                if s != main_sb:
+                    bid = s.bind(
+                        '<Leave>',
+                        lambda event: ApplicationLevelBindManager.mousewheel_unbind(),
+                        add='+')
+                    self._bindingids.append((s, bid))
+
