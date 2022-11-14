@@ -48,19 +48,21 @@ class MetadataManagerLib(_IMetadataManagerLib, ABC):
     selected_files_path = None
     new_edited_cinfo: ComicInfo | None = None
     loaded_cinfo_list: list[LoadedComicInfo] = list()
-    cinfo_tags: list[str] = ['Title', 'Series', 'LocalizedSeries', 'SeriesSort', 'Summary', 'Genre', 'Tags', 'AlternateSeries', 'Notes', 'AgeRating', 'CommunityRating', 'ScanInformation', 'StoryArc', 'AlternateCount', 'Writer', 'Inker', 'Colorist', 'Letterer', 'CoverArtist', 'Editor', 'Translator', 'Publisher', 'Imprint', 'Characters', 'Teams', 'Locations', 'Number', 'AlternateNumber', 'Count', 'Volume', 'PageCount', 'Year', 'Month', 'Day', 'StoryArcNumber', 'LanguageISO', 'Format', 'BlackAndWhite', 'Manga']
+    CINFO_TAGS: list[str] = ('Title', 'Series', 'LocalizedSeries', 'SeriesSort', 'Summary', 'Genre', 'Tags', 'AlternateSeries', 'Notes', 'AgeRating', 'CommunityRating', 'ScanInformation', 'StoryArc', 'AlternateCount', 'Writer', 'Inker', 'Colorist', 'Letterer', 'CoverArtist', 'Editor', 'Translator', 'Publisher', 'Imprint', 'Characters', 'Teams', 'Locations', 'Number', 'AlternateNumber', 'Count', 'Volume', 'PageCount', 'Year', 'Month', 'Day', 'StoryArcNumber', 'LanguageISO', 'Format', 'BlackAndWhite', 'Manga')
     MULTIPLE_VALUES_CONFLICT = "~~## Multiple Values in this Field - Keep Original Values ##~~"
 
-    def proces(self):
+    def proces(self, tags_to_process=None):
         """
         Core function
         Reads the new cinfo class and compares it against all LoadedComicInfo.
         Applies the changes to the LoadedComicInfo unless the value in cinfo is a special one (-1 -keep current,-2 - clear field)
+        :param tags_to_process list of cinfo tags that should be processed. Default is all of
         :return: list of loadedcinfo that failed to update :
         """
         if not self.loaded_cinfo_list:
             raise NoComicInfoLoaded()
-
+        if tags_to_process:
+            self.CINFO_TAGS = tags_to_process
         self.merge_changed_metadata()
         self.preview_export()
         for loaded_info in self.loaded_cinfo_list:
@@ -115,7 +117,7 @@ class MetadataManagerLib(_IMetadataManagerLib, ABC):
         for loaded_cinfo in self.loaded_cinfo_list:
             logger.debug(f"[Merging] Merging changes to {loaded_cinfo.file_path}")
 
-            for cinfo_tag in self.cinfo_tags:
+            for cinfo_tag in self.CINFO_TAGS:
                 new_value = self.new_edited_cinfo.get_attr_by_name(cinfo_tag)
                 old_value = loaded_cinfo.cinfo_object.get_attr_by_name(cinfo_tag)
                 # If the value in the ui is to keep original values then we continue with the next field

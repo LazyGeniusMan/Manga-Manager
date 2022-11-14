@@ -6,6 +6,7 @@ import tkinter
 from tkinter import Tk, Button, Frame, Label, Listbox, messagebox as mb, ttk
 
 from src.MangaManager_ThePromidius.Common.utils import get_platform
+from .extensions import ExtensionManaging
 
 if get_platform() == "linux":
     from src.MangaManager_ThePromidius.Common.GUI.FileChooserWindow import askopenfiles
@@ -21,13 +22,12 @@ from src.MangaManager_ThePromidius.Common.GUI.widgets import ComboBoxWidget, Lon
     ScrolledFrameWidget, WidgetManager
 
 
-class App(Tk, MetadataManagerLib):
+class App(Tk, MetadataManagerLib, ExtensionManaging):
     main_frame: Frame
 
     def __init__(self):
         super(App, self).__init__()
         # super(MetadataManagerLib, self).__init__()
-
         self.widget_mngr = WidgetManager()
         self.selected_files_path = None
         self.loaded_cinfo_list = None
@@ -83,6 +83,9 @@ class App(Tk, MetadataManagerLib):
         self.cinfo_tags = self.widget_mngr.get_tags()
         # print(self.widget_mngr.get_tags())
 
+    ############
+    # GUI methods
+    ############
     def _initialize_frames(self):
         self.main_frame = Frame(self)
         self.main_frame.configure(bg="blue", borderwidth=2)
@@ -95,6 +98,8 @@ class App(Tk, MetadataManagerLib):
         self.people_info_frame = tab_2.create_frame()
         tab_3 = ScrolledFrameWidget(self.notebook, scrolltype="vertical")
         self.misc_frame_numbering = tab_3.create_frame()
+        extensions_tab = ScrolledFrameWidget(self.notebook, scrolltype="vertical")
+        self.extensions_tab_frame = extensions_tab.create_frame()
 
         self.numbering_info_frame = Frame(self.misc_frame_numbering)
         self.numbering_info_frame.grid(row=0)
@@ -112,8 +117,10 @@ class App(Tk, MetadataManagerLib):
         self.notebook.add(tab_1, text="Basic Info")
         self.notebook.add(tab_2, text="People Info")
         self.notebook.add(tab_3, text="Numbering")
+        self.notebook.add(extensions_tab, text="Extensions")
         self.main_frame.configure(height='600', width='200')
         self.main_frame.pack(anchor='center', expand=True, fill='both', side='top')
+        self.build_extension_tab()  # From extensions.ExtensionManager
         self.focus()
 
     def select_files(self):
@@ -132,7 +139,7 @@ class App(Tk, MetadataManagerLib):
             initial_dir = self.last_folder
         self.log.debug("Selecting files")
         # Open select files dialog
-        selected_paths_list = askopenfiles(parent=self.master, initialdir=initial_dir,
+        selected_paths_list = askopenfiles(parent=self, initialdir=initial_dir,
                                            title="Select file to apply cover",
                                            filetypes=(("CBZ Files", ".cbz"), ("All Files", "*"),)
                                            # ("Zip files", ".zip"))
@@ -201,7 +208,7 @@ class App(Tk, MetadataManagerLib):
 
         #################
         # Numbering column
-        # #################
+        # ###############
         parent_frame = self.numbering_info_frame
         combo_width = 10
         self.widget_mngr.Number = ComboBoxWidget(parent_frame, "Number", width=combo_width).grid(0, 0)
@@ -240,6 +247,10 @@ class App(Tk, MetadataManagerLib):
                                                           "Unknown", *("Unknown", "Yes", "No")).grid(6, 0)
         self.widget_mngr.Manga = OptionMenuWidget(parent_frame, "Manga", "Manga",
                                                   "Unknown", *("Unknown", "Yes", "No", "YesAndRightToLeft")).grid(6, 1)
+
+    ###################
+    # Processing methods
+    ###################
 
     def _serialize_cinfolist_to_gui(self):
 
@@ -289,7 +300,9 @@ class App(Tk, MetadataManagerLib):
             if widget.get() != widget.default and widget.get():
                 new_cinfo.set_attr_by_name(cinfo_tag, self.widget_mngr.get_widget(cinfo_tag).get())
 
+    #################################
     # Errors handling implementations
+    #################################
     def on_badzipfile_error(self, exception, file_path: LoadedComicInfo):  # pragma: no cover
         mb.showerror("Error loading file",
                      f"Failed to read the file '{file_path}'.\nThis can be caused by wrong file format"
@@ -311,3 +324,4 @@ class App(Tk, MetadataManagerLib):
                        f"Failed to read metadata from '{loaded_info.file_path}'\n"
                        "The file data couldn't be parsed probably because of corrupted data or bad format.\n"
                        f"Recovery was attempted and failed.\nCreating new metadata object...")
+

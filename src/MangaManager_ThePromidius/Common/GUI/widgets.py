@@ -25,7 +25,7 @@ def validate_int(value):
 
 
 class WidgetManager:
-    cinfo_tags:list[str] = list()
+    cinfo_tags: list[str] = list()
 
     def get_widget(self, name) -> ComboBoxWidget | LongTextWidget | OptionMenuWidget:
         return getattr(self, name)
@@ -142,16 +142,18 @@ class LongTextWidget(Widget):
         self.widget.linked_text_field = self.widget_slave
 
 
+# noinspection PyTypeChecker
 class ScrolledFrameWidget(ScrolledFrame):
-    def __init__(self, master, *args, **kwargs):
+    def __init__(self, master, expand=True, fill="both", side="top", *args, **kwargs):
         super(ScrolledFrameWidget, self).__init__(master, **kwargs)
         self.configure(usemousewheel=True)
         self.paned_window = tkinter.PanedWindow(self.innerframe)
-        self.paned_window.pack(fill="both", expand=True)
-        self.pack(expand=1, fill='both', side='top')
+        self.paned_window.pack(fill=fill, expand=expand)
+        self.pack(expand=expand, fill=fill, side=side)
 
-    def create_frame(self):
+    def create_frame(self, expand=True, fill="both"):
         frame = Frame(self.paned_window)
-        frame.pack()
+        frame.pack(fill=fill, expand=expand)
+
         self.paned_window.add(frame)
         return frame
