@@ -15,7 +15,7 @@ if get_platform() == "linux":
     from src.MangaManager_ThePromidius.Common.GUI.FileChooserWindow import askopenfiles
 else:
     from tkinter.filedialog import askopenfiles
-#
+
 from src.MangaManager_ThePromidius.MetadataManager import comicinfo
 from src.MangaManager_ThePromidius.MetadataManager.MetadataManagerLib import MetadataManagerLib
 from src.MangaManager_ThePromidius.Common.loadedcomicinfo import LoadedComicInfo
@@ -94,20 +94,22 @@ class App(Tk, MetadataManagerLib, GUIExtensionManager):
         # These are some tricks to make it easier to select files.
         # Saves last opened folder to not have to browse to it again
         if not self.last_folder:
-            initial_dir = main_settings.library_path
+            initial_dir = main_settings.library_path.value
         else:
             initial_dir = self.last_folder
         self.log.debug("Selecting files")
         # Open select files dialog
-        selected_paths_list = askopenfiles(parent=self.master, initialdir=initial_dir,
+        selected_paths_list = askopenfiles(parent=self, initialdir=initial_dir,
                                            title="Select file to apply cover",
                                            filetypes=(("CBZ Files", ".cbz"), ("All Files", "*"),)
                                            # ("Zip files", ".zip"))
-                                           )
+                                           ) or []
+
         if selected_paths_list:
             selected_parent_folder = os.path.dirname(selected_paths_list[0].name)
             if self.last_folder != selected_parent_folder or not self.last_folder:
                 self.last_folder = selected_parent_folder
+
         self.selected_files_path = [file.name for file in selected_paths_list]
 
         self.log.debug(f"Selected files [{', '.join(self.selected_files_path)}]")
@@ -220,7 +222,7 @@ class App(Tk, MetadataManagerLib, GUIExtensionManager):
         self.files_selected_frame = tkinter.LabelFrame(self.side_info_frame)
 
         self.files_selected_frame.selected_files_label = Label(self.files_selected_frame, text="Opened Files:")
-        self.files_selected_frame.selected_files_label.pack(expand=False, fill="x", anchor="nw")
+        self.files_selected_frame.selected_files_label.pack(expand=False, fill="x")
         # self.selected_files_treeview = ListboxWidget(self.files_selected_frame, selectmode="multiple")
         self.selected_files_treeview = TreeviewWidget(self.files_selected_frame)
         self.selected_files_treeview.pack(expand=True, fill="both")
@@ -230,13 +232,13 @@ class App(Tk, MetadataManagerLib, GUIExtensionManager):
 
         self.selected_files_treeview.add_hook_item_selected(self.on_file_selection_preview)
 
-        # self.selected_files_treeview.update_cover_image = self.image_cover_frame.update_cover_image
+        self.selected_files_treeview.update_cover_image = self.image_cover_frame.update_cover_image
         self.image_cover_frame.pack(expand=False, fill='x')
         self.files_selected_frame.pack(expand=True, fill="both", pady=(20, 0))
 
         progress_bar_frame = tkinter.Frame(self.side_info_frame)
         self.progress_bar = ProgressBarWidget(progress_bar_frame)
-        progress_bar_frame.pack(expand=True, fill="both", side="bottom")
+        progress_bar_frame.pack(expand=False, fill="both", side="bottom")
 
     def display_widgets(self) -> None:
 

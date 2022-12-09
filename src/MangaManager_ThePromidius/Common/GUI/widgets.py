@@ -9,7 +9,7 @@ from idlelib.tooltip import Hovertip
 from os.path import basename
 from tkinter import OptionMenu, Frame, Label, ttk
 from tkinter.scrolledtext import ScrolledText
-from tkinter.ttk import Combobox
+from tkinter.ttk import Combobox, Treeview
 
 from PIL import UnidentifiedImageError
 
@@ -42,6 +42,7 @@ class ButtonWidget(tkinter.Button):
         if tooltip:
             self.configure(text=self.cget('text') + '  ⁱ')
             self.tooltip = Hovertip(self, tooltip, 20)
+
 
 class WidgetManager:
     cinfo_tags: list[str] = list()
@@ -212,7 +213,7 @@ class CoverFrame(tkinter.Frame):
     def rezized(self, event: tkinter.Event):
 
         global window_width, window_height
-        if (window_width != event.width):  # or (window_height != event.height)
+        if window_width != event.width:
             if 1000 >= event.width:
                 self.hide_back_image()
                 window_width, window_height = event.width, event.height
@@ -346,9 +347,6 @@ class SettingBolVar(tkinter.BooleanVar):
     def __init__(self, *args, **kwargs):
         super(SettingBolVar, self).__init__(*args, **kwargs)
         self.linked_setting: SettingItem = None
-    # def set(self, value: str) -> None:
-    #     self.linked_setting.value = value
-    #     super(SettingStringVar, self).set(value)
 
 
 class SettingsWidgetManager:
@@ -417,15 +415,6 @@ class SettingsWidgetManager:
             self.settings_widget[section_class._section_name][setting] = entry
             if setting.type_ == "bool":
                 string_var.set(bool(setting))
-            # else:
-            # entry.insert(0, setting.value)
-
-    # def save(self):
-    #     for setting_section in self.settings_widget:
-    #         set_class = settings_class.get_setion(setting_section)
-    #         for config in self.settings_widget.get(setting_section):
-    #             entry_data = self.settings_widget.get(setting_section).get(config).get()
-    #             set_class.set_value(config,entry_data)
 
 
 def _run_hook(source: list[callable], *args):
@@ -436,10 +425,10 @@ def _run_hook(source: list[callable], *args):
             logger.exception("Error calling hook")
 
 
-class TreeviewWidget(tkinter.ttk.Treeview):
+class TreeviewWidget(Treeview):
     def __init__(self, *args, **kwargs):
-        super(TreeviewWidget, self).__init__(padding=[-20, 0, 0, 0], *args, **kwargs)
-        self.heading('#0', text='Click to select all files', anchor='n', command=self.select_all)
+        super(TreeviewWidget, self).__init__(*args, **kwargs)
+        self.heading('#0', text='Click to select all files', command=self.select_all)
         # self.pack(expand=True, side="top")
         self.bind('<<TreeviewSelect>>', self._on_select)
         self._hook_items_inserted: list[callable] = []
@@ -490,26 +479,46 @@ class TreeviewWidget(tkinter.ttk.Treeview):
 
 class ProgressBarWidget(ProgressBar):
     def __init__(self, parent):
-
         pb_frame = Frame(parent)
         # pb_frame =parent
-        pb_frame.pack(expand=True, fill="x")
+        pb_frame.pack(expand=False, fill="x")
         super().__init__()
+
         bar_frame = Frame(pb_frame)
         bar_frame.pack(fill="x", side="top")
         bar_frame.columnconfigure(0, weight=1)
-        self.progress_bar = ttk.Progressbar(bar_frame, length=300,
+
+        self.style = ttk.Style(bar_frame)
+        self.style.layout('text.Horizontal.TProgressbar',
+                          [
+                              ('Horizontal.Progressbar.trough',
+                               {
+                                   'children': [
+                                       ('Horizontal.Progressbar.pbar',
+                                        {
+                                            'side': 'left',
+                                            'sticky': 'ns'
+                                        }
+                                        )
+                                   ],
+                                   'sticky': 'nswe'
+                               }
+                               ),
+                              ('Horizontal.Progressbar.label',
+                               {
+                                   'sticky': 'nswe'
+                               }
+                               )
+                          ]
+                          )
+        self.style.configure('text.Horizontal.TProgressbar', text='0 %', anchor='center')
+
+        self.progress_bar = ttk.Progressbar(bar_frame, length=10, style='text.Horizontal.TProgressbar',
                                             mode="determinate")  # create progress bar
-        self.progress_bar.grid(row=0, column=0, sticky="we")
-        self.progress_label = tkinter.StringVar(value="0 %")
-        self.label = Label(bar_frame, textvariable=self.progress_label)
-        self.label.grid(row=0, column=0)
-        # self.progress_bar.pack(expand=False, fill="x",side="top")
+        self.progress_bar.pack(expand=False, fill="x",side="top")
         self.pb_label_variable = tkinter.StringVar(value=self.label_text)
         self.pb_label = tkinter.Label(pb_frame, justify="right", textvariable=self.pb_label_variable)
         self.pb_label.pack(expand=False, fill="x", side="right")
-        # self.pb_label.columnconfigure(0, weight=1)
-        # self.pb_label.grid(row=1, column=0, sticky="e")
         logger.info("Initialized progress bar")
 
     def _update(self):
@@ -519,7 +528,7 @@ class ProgressBarWidget(ProgressBar):
         if self.processed >= self.total:
             self.timer.stop()
         self.pb_label_variable.set(self.label_text)
-        self.progress_label.set(f"{round(self.percentage, 2)}")
-
+        self.style.configure('text.Horizontal.TProgressbar',
+                             text='{:g} %'.format(round(self.percentage, 2)))  # update label
         self.progress_bar['value'] = self.percentage
         self.progress_bar.update()
